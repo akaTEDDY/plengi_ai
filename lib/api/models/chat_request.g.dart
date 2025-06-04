@@ -11,14 +11,14 @@ ChatRequest _$ChatRequestFromJson(Map<String, dynamic> json) => ChatRequest(
       messages: (json['messages'] as List<dynamic>)
           .map((e) => Message.fromJson(e as Map<String, dynamic>))
           .toList(),
-      maxTokens: (json['maxTokens'] as num?)?.toInt() ?? 1000,
+      maxTokens: (json['max_tokens'] as num?)?.toInt() ?? 1000,
     );
 
 Map<String, dynamic> _$ChatRequestToJson(ChatRequest instance) =>
     <String, dynamic>{
       'model': instance.model,
       'messages': instance.messages,
-      'maxTokens': instance.maxTokens,
+      'max_tokens': instance.maxTokens,
     };
 
 Message _$MessageFromJson(Map<String, dynamic> json) => Message(

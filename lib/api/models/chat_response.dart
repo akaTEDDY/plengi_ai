@@ -4,9 +4,16 @@ part 'chat_response.g.dart';
 
 @JsonSerializable()
 class ChatResponse {
+  @JsonKey(name: 'id')
   final String id;
+
+  @JsonKey(name: 'type')
   final String type;
+
+  @JsonKey(name: 'role')
   final String role;
+
+  @JsonKey(name: 'content')
   final List<Content> content;
 
   ChatResponse({
@@ -23,13 +30,13 @@ class ChatResponse {
 
 @JsonSerializable()
 class Content {
+  @JsonKey(name: 'type')
   final String type;
+
+  @JsonKey(name: 'text')
   final String text;
 
-  Content({
-    required this.type,
-    required this.text,
-  });
+  Content({required this.type, required this.text});
 
   factory Content.fromJson(Map<String, dynamic> json) =>
       _$ContentFromJson(json);

@@ -12,6 +12,7 @@ class AIService {
         'x-api-key': dotenv.env['ANTHROPIC_API_KEY'] ?? '',
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
+        'anthropic-beta': 'mcp-client-2025-04-04',
       },
       body: jsonEncode({
         'model': 'claude-3-opus-20240229',
@@ -19,12 +20,22 @@ class AIService {
         'messages': [
           {'role': 'user', 'content': userMessage},
         ],
+        'mcp_servers': [
+          {
+            'type': 'url',
+            'url': 'https://9287-175-116-24-228.ngrok-free.app/sse',
+            'name': 'restaurants_finder',
+          },
+        ],
       }),
     );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return data['content'][0]['text'] ?? '응답이 없습니다.';
+      final content = data['content'] as List;
+      return content.isNotEmpty
+          ? content.last['text'] ?? '응답이 없습니다.'
+          : '응답이 없습니다.';
     } else {
       return 'API 호출 실패: ${response.statusCode}';
     }
@@ -43,7 +54,7 @@ class AIService {
     });
 
     request.body = jsonEncode({
-      'model': 'claude-3-opus-20240229',
+      'model': 'claude-3-5-haiku-20241022',
       'max_tokens': 1024,
       'messages': [
         {'role': 'user', 'content': userMessage},

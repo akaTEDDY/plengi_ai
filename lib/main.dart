@@ -104,12 +104,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final result = await PermissionService.showPermissionDialog(context);
     // print('권한 요청 다이얼로그 결과: $result'); // 디버깅 로그 주석 처리
 
-    if (result == null) {
-      // 다이얼로그에서 '다음에 하기'를 선택했을 경우 (false가 반환되지만, 이전 코드 호환성을 위해 null 체크 유지)
-      // print('다음에 하기를 선택하여 추가 처리 없음'); // 디버깅 로그 주석 처리
-      // 이전에 설정으로 이동하는 로직이 있었으나, 새로운 디자인에서는 '다음에 하기' 시 설정 이동을 강제하지 않음
-      // 사용자가 직접 설정으로 이동하도록 안내하는 스낵바 등은 필요시 추가 가능
-    } else if (result) {
+    if (result) {
       // '예'를 선택했을 경우
       // print('권한 요청 시작'); // 디버깅 로그 주석 처리
       final granted = await _requestLocationPermission();
@@ -243,78 +238,44 @@ class _ChatScreenState extends State<ChatScreen> {
       messageBox.add(aiWaitingMessage); // Hive Box에 저장
     });
 
-    // 스트리밍 응답 처리
+    // AI 응답 처리
     _currentAiResponse = '';
     _aiResponseSubscription?.cancel();
-    _aiResponseSubscription = AIService.getAIResponseStream(userMessageText)
-        .listen(
-          (chunk) {
-            setState(() {
-              _currentAiResponse += chunk;
-              // 마지막 메시지 업데이트 (Hive에서도 업데이트)
-              if (_messages.isNotEmpty) {
-                final lastMessageIndex = _messages.length - 1;
-                _messages[lastMessageIndex].content = _currentAiResponse;
-                messageBox.putAt(
-                  lastMessageIndex,
-                  _messages[lastMessageIndex],
-                ); // Hive에서 업데이트
-              }
-            });
-            _scrollToBottom();
-          },
-          onError: (error) {
-            setState(() {
-              // 오류 메시지 업데이트 (Hive에서도 업데이트)
-              if (_messages.isNotEmpty) {
-                final lastMessageIndex = _messages.length - 1;
-                _messages[lastMessageIndex].content = '오류가 발생했습니다: $error';
-                messageBox.putAt(
-                  lastMessageIndex,
-                  _messages[lastMessageIndex],
-                ); // Hive에서 업데이트
-              }
-              _isAiResponding = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('오류가 발생했습니다: $error'),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          },
-          onDone: () {
-            // 스트리밍이 완료되면 최종 메시지 저장 (이미 스트림 중에 업데이트됨)
-            setState(() {
-              _isAiResponding = false;
-            });
-          },
-        );
 
-    // 타임아웃 처리
-    Future.delayed(const Duration(seconds: 30), () {
-      if (_isAiResponding) {
-        _aiResponseSubscription?.cancel();
-        setState(() {
-          // 타임아웃 메시지 업데이트 (Hive에서도 업데이트)
-          if (_messages.isNotEmpty) {
-            final lastMessageIndex = _messages.length - 1;
-            _messages[lastMessageIndex].content = '응답 시간이 초과되었습니다.';
-            messageBox.putAt(
-              lastMessageIndex,
-              _messages[lastMessageIndex],
-            ); // Hive에서 업데이트
-          }
-          _isAiResponding = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('응답 시간이 초과되었습니다.'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    });
+    try {
+      final response = await AIService.getAIResponse(userMessageText);
+      setState(() {
+        if (_messages.isNotEmpty) {
+          final lastMessageIndex = _messages.length - 1;
+          final updatedMessage = Message(
+            role: _messages[lastMessageIndex].role,
+            content: response,
+          );
+          _messages[lastMessageIndex] = updatedMessage;
+          messageBox.putAt(lastMessageIndex, updatedMessage);
+        }
+        _isAiResponding = false;
+      });
+    } catch (error) {
+      setState(() {
+        if (_messages.isNotEmpty) {
+          final lastMessageIndex = _messages.length - 1;
+          final updatedMessage = Message(
+            role: _messages[lastMessageIndex].role,
+            content: '오류가 발생했습니다: $error',
+          );
+          _messages[lastMessageIndex] = updatedMessage;
+          messageBox.putAt(lastMessageIndex, updatedMessage);
+        }
+        _isAiResponding = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('오류가 발생했습니다: $error'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
 
     _scrollToBottom();
   }
@@ -411,10 +372,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 const SizedBox(width: 8.0),
                 FloatingActionButton(
                   onPressed: _isAiResponding ? _cancelAiResponse : _sendMessage,
-                  child: Icon(_isAiResponding ? Icons.close : Icons.send),
                   backgroundColor: _isAiResponding
                       ? Theme.of(context).colorScheme.error
                       : Theme.of(context).colorScheme.primary,
+                  child: Icon(_isAiResponding ? Icons.close : Icons.send),
                 ),
               ],
             ),
