@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PermissionInfo {
   final String name;
@@ -14,7 +15,7 @@ class PermissionInfo {
   });
 }
 
-class PermissionService {
+class PermissionUtils {
   static final List<PermissionInfo> requiredPermissions = [
     const PermissionInfo(
       name: '위치 권한',
@@ -38,6 +39,40 @@ class PermissionService {
     //   isRequired: false,
     // ),
   ];
+
+  // 위치 권한 확인 및 요청
+  static Future<bool> checkAndRequestPermission(BuildContext context) async {
+    final status = await checkPermission();
+    if (status) return true;
+
+    final result = await showPermissionDialog(context);
+    if (result) {
+      return await requestPermission();
+    }
+    return false;
+  }
+
+  // 위치 권한 확인
+  static Future<bool> checkPermission() async {
+    try {
+      final status = await Permission.location.status;
+      return status.isGranted;
+    } catch (e) {
+      print('권한 확인 오류: $e');
+      return false;
+    }
+  }
+
+  // 위치 권한 요청
+  static Future<bool> requestPermission() async {
+    try {
+      final status = await Permission.location.request();
+      return status.isGranted;
+    } catch (e) {
+      print('권한 요청 오류: $e');
+      return false;
+    }
+  }
 
   static Future<bool> showPermissionDialog(
     BuildContext context,
@@ -78,7 +113,7 @@ class PermissionService {
                       '${index + 1}. ${permission.name}: ${permission.description}',
                     ),
                   );
-                }).toList(),
+                }),
                 const SizedBox(height: 16),
 
                 // 이미지 하단의 안내 문구 추가

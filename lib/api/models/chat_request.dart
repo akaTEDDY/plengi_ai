@@ -1,5 +1,4 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:plengi_ai/models/message.dart';
 
 part 'chat_request.g.dart';
 

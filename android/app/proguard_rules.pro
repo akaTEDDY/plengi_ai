@@ -27,3 +27,5 @@
 }
 -dontwarn okhttp3.internal.platform.*
 -dontwarn org.conscrypt.*
+
+-keep class com.example.plengiai.plengi_ai.EventStreamHandler { *; }
